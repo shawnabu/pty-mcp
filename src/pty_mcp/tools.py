@@ -17,18 +17,18 @@ def register_tools(server: Server, session_manager: SessionManager) -> None:
         return [
             Tool(
                 name="start_session",
-                description="Start a new PTY session. Returns a session_id to use with other commands.",
+                description="Start a new PTY session with any command or shell. Returns a session_id to use with other commands.",
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "shell": {
+                        "command": {
                             "type": "string",
-                            "description": "Shell to use (default: $SHELL or /bin/bash)",
+                            "description": "Command/binary to execute (default: $SHELL or /bin/bash). Can be any executable like bash, python3, tcl, somebinary, etc.",
                         },
-                        "shell_args": {
+                        "args": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Additional arguments to pass to the shell/program",
+                            "description": "Arguments to pass to the command (e.g., [\"-a\", \"-b\", \"--args\"] for somebinary -a -b --args)",
                         },
                         "cwd": {
                             "type": "string",
@@ -176,8 +176,8 @@ async def _start_session(
     manager: SessionManager, args: dict
 ) -> list[TextContent]:
     config = SessionConfig(
-        shell=args.get("shell", SessionConfig().shell),
-        shell_args=args.get("shell_args", []),
+        command=args.get("command", SessionConfig().command),
+        args=args.get("args", []),
         cwd=args.get("cwd", SessionConfig().cwd),
         timeout_seconds=args.get("timeout_seconds", 1800),
         buffer_size=args.get("buffer_size", 1000),
@@ -189,7 +189,7 @@ async def _start_session(
     return [
         TextContent(
             type="text",
-            text=f"Session started: {session.session_id}\nShell: {config.shell}\nCWD: {config.cwd}",
+            text=f"Session started: {session.session_id}\nCommand: {config.command}\nCWD: {config.cwd}",
         )
     ]
 
@@ -293,7 +293,7 @@ async def _list_sessions(manager: SessionManager) -> list[TextContent]:
     lines = ["Active sessions:"]
     for s in sessions:
         lines.append(
-            f"  {s['session_id']}: {s['shell']} (cwd: {s['cwd']}, alive: {s['is_alive']})"
+            f"  {s['session_id']}: {s['command']} (cwd: {s['cwd']}, alive: {s['is_alive']})"
         )
 
     return [TextContent(type="text", text="\n".join(lines))]

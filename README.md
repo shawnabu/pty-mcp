@@ -37,23 +37,41 @@ Add to your MCP client configuration:
 Or run directly:
 
 ```bash
-uv run pty-mcp --max-sessions 10
+uv run pty-mcp --max-sessions 10 --log-dir /path/to/logs
 ```
+
+The `--log-dir` option enables real-time session logging. When specified, each session's output is written immediately to a log file named `<command_name>_<session_id>.log` (e.g., `bash_3a4b5c6d7e8f.log`). The directory must exist; the server will error if it doesn't. You can watch logs in real-time with `tail -f /path/to/logs/*.log`.
 
 ### MCP Tools
 
 #### `start_session`
 
-Start a new PTY session.
+Start a new PTY session with any command or shell.
 
 **Parameters:**
-- `shell` (optional): Shell to use (default: `$SHELL` or `/bin/bash`)
+- `command` (optional): Command/binary to execute (default: `$SHELL` or `/bin/bash`). Can be any executable like `bash`, `python3`, `tcl`, `somebinary`, etc.
+- `args` (optional): List of arguments to pass to the command (e.g., `["-a", "-b", "--args"]` for `somebinary -a -b --args`)
 - `cwd` (optional): Working directory
 - `timeout_seconds` (optional): Idle timeout (default: 1800)
 - `buffer_size` (optional): Scrollback buffer lines (default: 1000)
 - `sentinel_command` (optional): Command to echo sentinel (default: `echo {sentinel}`)
 
 **Returns:** Session ID
+
+**Examples:**
+```python
+# Start default shell (bash)
+start_session()
+
+# Start Python REPL
+start_session(command="python3")
+
+# Start custom binary with arguments
+start_session(command="somebinary", args=["-a", "-b", "--args"])
+
+# Start Tcl shell in specific directory
+start_session(command="tclsh", cwd="/path/to/project")
+```
 
 #### `run_command`
 

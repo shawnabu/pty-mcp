@@ -14,7 +14,10 @@ from .tools import register_tools
 async def run_server(config: ServerConfig) -> None:
     """Run the MCP server."""
     server = Server("pty-mcp")
-    session_manager = SessionManager(max_sessions=config.max_sessions)
+    session_manager = SessionManager(
+        max_sessions=config.max_sessions,
+        log_dir=config.log_dir
+    )
 
     await session_manager.start()
     register_tools(server, session_manager)
@@ -41,10 +44,19 @@ def main() -> None:
         default=10,
         help="Maximum concurrent PTY sessions",
     )
+    parser.add_argument(
+        "--log-dir",
+        type=str,
+        default=None,
+        help="Directory to write session logs (must exist)",
+    )
 
     args = parser.parse_args()
 
-    config = ServerConfig(max_sessions=args.max_sessions)
+    config = ServerConfig(
+        max_sessions=args.max_sessions,
+        log_dir=args.log_dir
+    )
 
     asyncio.run(run_server(config))
 

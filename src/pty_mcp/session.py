@@ -20,6 +20,7 @@ class PTYSession:
 
     session_id: str
     config: SessionConfig
+    log_dir: Optional[str] = None
     pid: int = field(init=False)
     fd: int = field(init=False)
     buffer: deque[str] = field(init=False)
@@ -28,6 +29,7 @@ class PTYSession:
     _running: bool = field(default=False, init=False)
     _read_task: Optional[asyncio.Task] = field(default=None, init=False)
     _pending_output: str = field(default="", init=False)
+    _log_file: Optional[object] = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         self.buffer = deque(maxlen=self.config.buffer_size)
@@ -40,8 +42,8 @@ class PTYSession:
             # Child process
             os.chdir(self.config.cwd)
             # Build argv: [program_name, *additional_args]
-            argv = [self.config.shell] + self.config.shell_args
-            os.execvp(self.config.shell, argv)
+            argv = [self.config.command] + self.config.args
+            os.execvp(self.config.command, argv)
         else:
             # Parent process
             self.pid = pid
@@ -50,6 +52,13 @@ class PTYSession:
 
             # Set non-blocking mode
             os.set_blocking(fd, False)
+
+            # Open log file if logging enabled
+            if self.log_dir:
+                command_name = os.path.basename(self.config.command)
+                log_filename = f"{command_name}_{self.session_id}.log"
+                log_path = os.path.join(self.log_dir, log_filename)
+                self._log_file = open(log_path, 'w', encoding='utf-8', buffering=1)
 
             # Start background reader
             self._read_task = asyncio.create_task(self._read_loop())
@@ -69,6 +78,9 @@ class PTYSession:
                             "\n", 1
                         )
                         self.buffer.append(line)
+                        # Write to log file immediately
+                        if self._log_file:
+                            self._log_file.write(line + "\n")
                     self.last_activity = datetime.now()
             except OSError:
                 break
@@ -184,6 +196,13 @@ class PTYSession:
             except asyncio.CancelledError:
                 pass
 
+        # Close log file
+        if self._log_file:
+            try:
+                self._log_file.close()
+            except:
+                pass
+
         try:
             os.close(self.fd)
         except OSError:
@@ -215,10 +234,15 @@ class PTYSession:
 class SessionManager:
     """Manages multiple PTY sessions."""
 
-    def __init__(self, max_sessions: int = 10) -> None:
+    def __init__(self, max_sessions: int = 10, log_dir: Optional[str] = None) -> None:
         self.max_sessions = max_sessions
+        self.log_dir = log_dir
         self.sessions: dict[str, PTYSession] = {}
         self._cleanup_task: Optional[asyncio.Task] = None
+        
+        # Validate log_dir if provided
+        if self.log_dir and not os.path.isdir(self.log_dir):
+            raise ValueError(f"Log directory does not exist: {self.log_dir}")
 
     async def start(self) -> None:
         """Start the session manager."""
@@ -263,7 +287,7 @@ class SessionManager:
             )
 
         session_id = uuid.uuid4().hex[:12]
-        session = PTYSession(session_id=session_id, config=config)
+        session = PTYSession(session_id=session_id, config=config, log_dir=self.log_dir)
         await session.start()
 
         self.sessions[session_id] = session
@@ -286,7 +310,7 @@ class SessionManager:
         return [
             {
                 "session_id": session.session_id,
-                "shell": session.config.shell,
+                "command": session.config.command,
                 "cwd": session.config.cwd,
                 "created_at": session.created_at.isoformat(),
                 "last_activity": session.last_activity.isoformat(),

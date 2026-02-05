@@ -129,11 +129,11 @@ async def test_list_sessions_tool(manager):
 
 
 @pytest.mark.asyncio
-async def test_custom_shell(manager):
-    """Test starting session with custom shell."""
-    result = await _start_session(manager, {"shell": "/bin/sh"})
+async def test_custom_command(manager):
+    """Test starting session with custom command."""
+    result = await _start_session(manager, {"command": "/bin/sh"})
 
-    assert "Shell: /bin/sh" in result[0].text
+    assert "Command: /bin/sh" in result[0].text
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,7 @@ from pty_mcp.session import PTYSession, SessionManager
 @pytest.mark.asyncio
 async def test_session_start_stop():
     """Test basic session lifecycle."""
-    config = SessionConfig(shell="/bin/bash")
+    config = SessionConfig(command="/bin/bash")
     session = PTYSession(session_id="test1", config=config)
 
     await session.start()
@@ -24,7 +24,7 @@ async def test_session_start_stop():
 @pytest.mark.asyncio
 async def test_run_simple_command():
     """Test running a simple echo command."""
-    config = SessionConfig(shell="/bin/bash")
+    config = SessionConfig(command="/bin/bash")
     session = PTYSession(session_id="test2", config=config)
 
     await session.start()
@@ -41,7 +41,7 @@ async def test_run_simple_command():
 @pytest.mark.asyncio
 async def test_run_command_with_output():
     """Test command that produces multi-line output."""
-    config = SessionConfig(shell="/bin/bash")
+    config = SessionConfig(command="/bin/bash")
     session = PTYSession(session_id="test3", config=config)
 
     await session.start()
@@ -60,7 +60,7 @@ async def test_run_command_with_output():
 @pytest.mark.asyncio
 async def test_get_buffer():
     """Test buffer retrieval."""
-    config = SessionConfig(shell="/bin/bash", buffer_size=100)
+    config = SessionConfig(command="/bin/bash", buffer_size=100)
     session = PTYSession(session_id="test4", config=config)
 
     await session.start()
@@ -77,7 +77,7 @@ async def test_get_buffer():
 @pytest.mark.asyncio
 async def test_get_buffer_last_n_lines():
     """Test getting last N lines from buffer."""
-    config = SessionConfig(shell="/bin/bash", buffer_size=100)
+    config = SessionConfig(command="/bin/bash", buffer_size=100)
     session = PTYSession(session_id="test5", config=config)
 
     await session.start()
@@ -96,7 +96,7 @@ async def test_get_buffer_last_n_lines():
 @pytest.mark.asyncio
 async def test_send_keys():
     """Test sending raw keys."""
-    config = SessionConfig(shell="/bin/bash")
+    config = SessionConfig(command="/bin/bash")
     session = PTYSession(session_id="test6", config=config)
 
     await session.start()
@@ -150,7 +150,7 @@ async def test_session_manager_max_sessions():
 async def test_python_repl():
     """Test running commands in Python REPL."""
     config = SessionConfig(
-        shell="/bin/bash",
+        command="/bin/bash",
         sentinel_command="print('{sentinel}')",
     )
     session = PTYSession(session_id="test_python", config=config)
@@ -176,12 +176,12 @@ async def test_python_repl():
 
 
 @pytest.mark.asyncio
-async def test_shell_with_args():
-    """Test starting a shell with command-line arguments."""
+async def test_command_with_args():
+    """Test starting a command with command-line arguments."""
     # Start bash with -c option to run a command
     config = SessionConfig(
-        shell="/bin/bash",
-        shell_args=["-c", "echo 'test_arg_output'; exec bash"],
+        command="/bin/bash",
+        args=["-c", "echo 'test_arg_output'; exec bash"],
         buffer_size=100,
     )
     session = PTYSession(session_id="test_args", config=config)
