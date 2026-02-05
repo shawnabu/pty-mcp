@@ -270,7 +270,7 @@ class SessionManager:
             for session_id, session in list(self.sessions.items()):
                 # Check timeout
                 idle_seconds = (now - session.last_activity).total_seconds()
-                if idle_seconds > session.config.timeout_seconds:
+                if idle_seconds > session.config.timeout_session:
                     await session.stop()
                     del self.sessions[session_id]
 

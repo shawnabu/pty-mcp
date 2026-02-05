@@ -52,7 +52,7 @@ Start a new PTY session with any command or shell.
 - `command` (optional): Command/binary to execute (default: `$SHELL` or `/bin/bash`). Can be any executable like `bash`, `python3`, `tcl`, `somebinary -a -b`, etc. If `args` is not provided, the command string will be automatically parsed to extract arguments.
 - `args` (optional): List of arguments to pass to the command. If omitted, arguments will be parsed from the `command` string. Explicitly provide this when arguments contain spaces or special characters.
 - `cwd` (optional): Working directory
-- `timeout_seconds` (optional): Idle timeout (default: 1800)
+- `timeout_session` (optional): Idle timeout (default: 86400)
 - `buffer_size` (optional): Scrollback buffer lines (default: 1000)
 - `sentinel_command` (optional): Command to echo sentinel (default: `echo {sentinel}`)
 

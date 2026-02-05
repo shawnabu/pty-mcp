@@ -34,9 +34,9 @@ def register_tools(server: Server, session_manager: SessionManager) -> None:
                             "type": "string",
                             "description": "Working directory for the session",
                         },
-                        "timeout_seconds": {
+                        "timeout_session": {
                             "type": "integer",
-                            "description": "Idle timeout in seconds (default: 1800)",
+                            "description": "Idle timeout in seconds (default: 86400)",
                         },
                         "buffer_size": {
                             "type": "integer",
@@ -199,7 +199,7 @@ async def _start_session(
         command=command,
         args=cmd_args,
         cwd=args.get("cwd", SessionConfig().cwd),
-        timeout_seconds=args.get("timeout_seconds", 1800),
+        timeout_session=args.get("timeout_session", 86400),
         buffer_size=args.get("buffer_size", 1000),
         sentinel_command=args.get("sentinel_command", "echo {sentinel}"),
     )

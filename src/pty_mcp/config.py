@@ -11,7 +11,7 @@ class SessionConfig:
     command: str = field(default_factory=lambda: os.environ.get("SHELL", "/bin/bash"))
     args: list[str] = field(default_factory=list)  # Additional arguments for command
     cwd: str = field(default_factory=os.getcwd)
-    timeout_seconds: int = 1800  # 30 minutes idle timeout
+    timeout_session: int = 86400  # 24 hours idle timeout
     buffer_size: int = 1000  # lines to keep in scrollback
     sentinel_command: str = "echo {sentinel}"  # command to echo sentinel
 
