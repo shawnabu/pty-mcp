@@ -118,6 +118,12 @@ class PTYSession:
             # Look for sentinel
             for i, line in enumerate(new_lines):
                 if sentinel in line:
+                    # Skip if this is the command echo (contains the echo command itself)
+                    # Real sentinel output is just the sentinel value, not "echo <sentinel>"
+                    stripped = line.strip()
+                    if stripped == sentinel_cmd.strip() or stripped.endswith(sentinel_cmd.strip()):
+                        continue  # This is the command echo, not the actual sentinel output
+                    
                     # Found sentinel - return everything before it
                     output_lines = new_lines[:i]
                     # Filter out the command echo and sentinel command echo
