@@ -173,3 +173,23 @@ async def test_python_repl():
     await asyncio.sleep(0.2)
 
     await session.stop()
+
+
+@pytest.mark.asyncio
+async def test_shell_with_args():
+    """Test starting a shell with command-line arguments."""
+    # Start bash with -c option to run a command
+    config = SessionConfig(
+        shell="/bin/bash",
+        shell_args=["-c", "echo 'test_arg_output'; exec bash"],
+        buffer_size=100,
+    )
+    session = PTYSession(session_id="test_args", config=config)
+
+    await session.start()
+    await asyncio.sleep(0.3)
+
+    buffer = session.get_buffer()
+    assert "test_arg_output" in buffer
+
+    await session.stop()

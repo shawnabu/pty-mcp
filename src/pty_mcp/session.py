@@ -39,7 +39,9 @@ class PTYSession:
         if pid == 0:
             # Child process
             os.chdir(self.config.cwd)
-            os.execvp(self.config.shell, [self.config.shell])
+            # Build argv: [program_name, *additional_args]
+            argv = [self.config.shell] + self.config.shell_args
+            os.execvp(self.config.shell, argv)
         else:
             # Parent process
             self.pid = pid

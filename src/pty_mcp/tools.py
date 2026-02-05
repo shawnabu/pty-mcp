@@ -25,6 +25,11 @@ def register_tools(server: Server, session_manager: SessionManager) -> None:
                             "type": "string",
                             "description": "Shell to use (default: $SHELL or /bin/bash)",
                         },
+                        "shell_args": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Additional arguments to pass to the shell/program",
+                        },
                         "cwd": {
                             "type": "string",
                             "description": "Working directory for the session",
@@ -172,6 +177,7 @@ async def _start_session(
 ) -> list[TextContent]:
     config = SessionConfig(
         shell=args.get("shell", SessionConfig().shell),
+        shell_args=args.get("shell_args", []),
         cwd=args.get("cwd", SessionConfig().cwd),
         timeout_seconds=args.get("timeout_seconds", 1800),
         buffer_size=args.get("buffer_size", 1000),
