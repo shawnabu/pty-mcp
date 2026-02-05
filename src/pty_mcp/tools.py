@@ -65,7 +65,7 @@ def register_tools(server: Server, session_manager: SessionManager) -> None:
                         },
                         "timeout": {
                             "type": "number",
-                            "description": "Timeout in seconds to wait for command completion (default: 30)",
+                            "description": "Timeout in seconds to wait for command completion (default: 1800)",
                         },
                     },
                     "required": ["session_id", "command"],
@@ -219,7 +219,7 @@ async def _run_command(
 ) -> list[TextContent]:
     session_id = args["session_id"]
     command = args["command"]
-    timeout = args.get("timeout", 30.0)
+    timeout = args.get("timeout", 1800.0)
 
     session = manager.get_session(session_id)
     if not session:

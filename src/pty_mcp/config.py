@@ -21,5 +21,5 @@ class ServerConfig:
     """Configuration for the MCP server."""
 
     max_sessions: int = 10
-    default_command_timeout: float = 30.0  # seconds to wait for command completion
+    default_command_timeout: float = 1800.0  # seconds to wait for command completion
     log_dir: str | None = None  # directory to write session logs

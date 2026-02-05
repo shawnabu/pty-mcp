@@ -83,7 +83,7 @@ Run a command and wait for completion.
 **Parameters:**
 - `session_id` (required): Session ID from `start_session`
 - `command` (required): Command to run
-- `timeout` (optional): Timeout in seconds (default: 30)
+- `timeout` (optional): Timeout in seconds (default: 1800)
 
 **Returns:** Command output
 
