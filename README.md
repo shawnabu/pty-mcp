@@ -49,8 +49,8 @@ The `--log-dir` option enables real-time session logging. When specified, each s
 Start a new PTY session with any command or shell.
 
 **Parameters:**
-- `command` (optional): Command/binary to execute (default: `$SHELL` or `/bin/bash`). Can be any executable like `bash`, `python3`, `tcl`, `somebinary`, etc.
-- `args` (optional): List of arguments to pass to the command (e.g., `["-a", "-b", "--args"]` for `somebinary -a -b --args`)
+- `command` (optional): Command/binary to execute (default: `$SHELL` or `/bin/bash`). Can be any executable like `bash`, `python3`, `tcl`, `somebinary -a -b`, etc. If `args` is not provided, the command string will be automatically parsed to extract arguments.
+- `args` (optional): List of arguments to pass to the command. If omitted, arguments will be parsed from the `command` string. Explicitly provide this when arguments contain spaces or special characters.
 - `cwd` (optional): Working directory
 - `timeout_seconds` (optional): Idle timeout (default: 1800)
 - `buffer_size` (optional): Scrollback buffer lines (default: 1000)
@@ -66,7 +66,10 @@ start_session()
 # Start Python REPL
 start_session(command="python3")
 
-# Start custom binary with arguments
+# Start custom binary with arguments (auto-parsed)
+start_session(command="somebinary -a -b --args")
+
+# Start with explicit args (for complex arguments)
 start_session(command="somebinary", args=["-a", "-b", "--args"])
 
 # Start Tcl shell in specific directory

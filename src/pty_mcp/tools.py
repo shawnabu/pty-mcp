@@ -23,12 +23,12 @@ def register_tools(server: Server, session_manager: SessionManager) -> None:
                     "properties": {
                         "command": {
                             "type": "string",
-                            "description": "Command/binary to execute (default: $SHELL or /bin/bash). Can be any executable like bash, python3, tcl, somebinary, etc.",
+                            "description": "Command/binary to execute (default: $SHELL or /bin/bash). Can be 'python3', 'somebinary -a -b', etc. Arguments are auto-parsed from the command string if 'args' is not provided.",
                         },
                         "args": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Arguments to pass to the command (e.g., [\"-a\", \"-b\", \"--args\"] for somebinary -a -b --args)",
+                            "description": "Optional explicit arguments for the command. If omitted, arguments are parsed from the command string. Use this for arguments with spaces or special characters.",
                         },
                         "cwd": {
                             "type": "string",
@@ -175,9 +175,29 @@ def register_tools(server: Server, session_manager: SessionManager) -> None:
 async def _start_session(
     manager: SessionManager, args: dict
 ) -> list[TextContent]:
+    import shlex
+    
+    command = args.get("command", SessionConfig().command)
+    cmd_args = args.get("args", None)
+    
+    # If args not provided, try to parse command string
+    if cmd_args is None and command:
+        try:
+            parsed = shlex.split(command)
+            if len(parsed) > 1:
+                command = parsed[0]
+                cmd_args = parsed[1:]
+            else:
+                cmd_args = []
+        except ValueError:
+            # If parsing fails, use command as-is with no args
+            cmd_args = []
+    elif cmd_args is None:
+        cmd_args = []
+    
     config = SessionConfig(
-        command=args.get("command", SessionConfig().command),
-        args=args.get("args", []),
+        command=command,
+        args=cmd_args,
         cwd=args.get("cwd", SessionConfig().cwd),
         timeout_seconds=args.get("timeout_seconds", 1800),
         buffer_size=args.get("buffer_size", 1000),
@@ -189,7 +209,7 @@ async def _start_session(
     return [
         TextContent(
             type="text",
-            text=f"Session started: {session.session_id}\nCommand: {config.command}\nCWD: {config.cwd}",
+            text=f"Session started: {session.session_id}\nCommand: {config.command} {' '.join(config.args)}\nCWD: {config.cwd}",
         )
     ]
 

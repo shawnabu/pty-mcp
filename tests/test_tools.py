@@ -180,3 +180,34 @@ async def test_command_timeout(manager):
     )
 
     assert "TIMEOUT" in result[0].text
+
+
+@pytest.mark.asyncio
+async def test_command_string_parsing(manager):
+    """Test that command string with arguments is auto-parsed."""
+    result = await _start_session(manager, {"command": "/bin/echo hello world"})
+    
+    assert "Session started:" in result[0].text
+    session_id = result[0].text.split("\n")[0].split(": ")[1]
+    
+    # Verify the session was created with parsed command
+    sessions = manager.list_sessions()
+    session = next(s for s in sessions if s["session_id"] == session_id)
+    assert session["command"] == "/bin/echo"
+
+
+@pytest.mark.asyncio
+async def test_explicit_args_override_parsing(manager):
+    """Test that explicit args parameter overrides command parsing."""
+    result = await _start_session(
+        manager, 
+        {"command": "/bin/bash", "args": ["-c", "echo explicit"]}
+    )
+    
+    assert "Session started:" in result[0].text
+    session_id = result[0].text.split("\n")[0].split(": ")[1]
+    
+    # Verify args were used
+    sessions = manager.list_sessions()
+    session = next(s for s in sessions if s["session_id"] == session_id)
+    assert session["command"] == "/bin/bash"
