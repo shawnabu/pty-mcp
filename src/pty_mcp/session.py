@@ -56,7 +56,7 @@ class PTYSession:
             # Open log file if logging enabled
             if self.log_dir:
                 command_name = os.path.basename(self.config.command)
-                log_filename = f"{command_name}_{self.session_id}.log"
+                log_filename = f"pty_{command_name}_{self.session_id}.log"
                 log_path = os.path.join(self.log_dir, log_filename)
                 self._log_file = open(log_path, 'w', encoding='utf-8', buffering=1)
 

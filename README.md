@@ -40,7 +40,7 @@ Or run directly:
 uv run pty-mcp --max-sessions 10 --log-dir /path/to/logs
 ```
 
-The `--log-dir` option enables real-time session logging. When specified, each session's output is written immediately to a log file named `<command_name>_<session_id>.log` (e.g., `bash_3a4b5c6d7e8f.log`). The directory must exist; the server will error if it doesn't. You can watch logs in real-time with `tail -f /path/to/logs/*.log`.
+The `--log-dir` option enables real-time session logging. When specified, each session's output is written immediately to a log file named `pty_<command_name>_<session_id>.log` (e.g., `pty_bash_3a4b5c6d7e8f.log`). The directory must exist; the server will error if it doesn't. You can watch logs in real-time with `tail -f /path/to/logs/*.log`.
 
 ### MCP Tools
 
