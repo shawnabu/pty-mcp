@@ -127,8 +127,243 @@ def test_strip_ansi_codes_preserves_text():
 
 def test_strip_ansi_codes_preserves_whitespace():
     """Test that newlines, tabs, and spaces are preserved."""
-    text = "Line1\nLine2\tTabbed\r\nLine3"
+    text = "Line1\nLine2\tTabbed\nLine3"
     assert strip_ansi_codes(text) == text
+
+
+def test_strip_ansi_codes_normalizes_crlf():
+    """Test that \\r\\n is normalized to \\n."""
+    print("\n" + "="*60)
+    print("=== Testing CRLF Normalization ===")
+    print("="*60)
+    
+    text = "Line1\r\nLine2\r\nLine3\r\n"
+    result = strip_ansi_codes(text)
+    expected = "Line1\nLine2\nLine3\n"
+    
+    print(f"\nWindows-style line endings (\\r\\n):")
+    print(f"Input repr:  {repr(text)}")
+    print(f"Output repr: {repr(result)}")
+    print(f"Expected:    {repr(expected)}")
+    assert result == expected
+
+
+def test_strip_ansi_codes_progress_bar():
+    """Test handling of progress bar with carriage returns."""
+    print("\n" + "="*60)
+    print("=== Testing Progress Bar Filtering ===")
+    print("="*60)
+    
+    # Simulate a progress bar that overwrites itself
+    text = "Downloading: 10%\rDownloading: 50%\rDownloading: 100%"
+    result = strip_ansi_codes(text)
+    expected = "Downloading: 100%"
+    
+    print(f"\nProgress bar with overwrites:")
+    print(f"Input repr:  {repr(text)}")
+    print(f"Output repr: {repr(result)}")
+    print(f"Expected:    {repr(expected)}")
+    assert result == expected
+
+
+def test_strip_ansi_codes_spinner():
+    """Test handling of spinner animation."""
+    print("\n" + "="*60)
+    print("=== Testing Spinner Filtering ===")
+    print("="*60)
+    
+    # Simulate a spinner
+    text = "Loading |...\rLoading /...\rLoading -...\rLoading \\...\rLoading Done!"
+    result = strip_ansi_codes(text)
+    expected = "Loading Done!"
+    
+    print(f"\nSpinner with overwrites:")
+    print(f"Input repr:  {repr(text)}")
+    print(f"Output repr: {repr(result)}")
+    print(f"Expected:    {repr(expected)}")
+    assert result == expected
+
+
+def test_strip_ansi_codes_multiline_progress():
+    """Test progress bar across multiple lines."""
+    print("\n" + "="*60)
+    print("=== Testing Multi-line Progress ===")
+    print("="*60)
+    
+    # Progress on multiple lines with some having overwrites
+    text = "File1: 10%\rFile1: 100%\nFile2: 20%\rFile2: 100%\nComplete"
+    result = strip_ansi_codes(text)
+    expected = "File1: 100%\nFile2: 100%\nComplete"
+    
+    print(f"\nMulti-line with progress:")
+    print(f"Input repr:  {repr(text)}")
+    print(f"Output repr: {repr(result)}")
+    print(f"Expected:    {repr(expected)}")
+    assert result == expected
+
+
+def test_strip_ansi_codes_crlf_with_progress():
+    """Test combined \\r\\n and standalone \\r handling."""
+    print("\n" + "="*60)
+    print("=== Testing Combined CRLF and Progress ===")
+    print("="*60)
+    
+    # Mix of \r\n line endings and \r overwrites
+    text = "Line1\r\nProgress: 10%\rProgress: 100%\r\nLine3\r\n"
+    result = strip_ansi_codes(text)
+    expected = "Line1\nProgress: 100%\nLine3\n"
+    
+    print(f"\nMixed line endings and progress:")
+    print(f"Input repr:  {repr(text)}")
+    print(f"Output repr: {repr(result)}")
+    print(f"Expected:    {repr(expected)}")
+    assert result == expected
+
+
+def test_strip_ansi_codes_ansi_with_crlf():
+    """Test ANSI codes with CRLF line endings."""
+    print("\n" + "="*60)
+    print("=== Testing ANSI Codes with CRLF ===")
+    print("="*60)
+    
+    text = "\x1b[31mRed line\x1b[0m\r\n\x1b[32mGreen line\x1b[0m\r\n"
+    result = strip_ansi_codes(text)
+    expected = "Red line\nGreen line\n"
+    
+    print(f"\nANSI colors with Windows line endings:")
+    print(f"WITH ANSI (colored):\n{text}")
+    print(f"WITHOUT ANSI (plain):\n{result}")
+    print(f"Input repr:  {repr(text)}")
+    print(f"Output repr: {repr(result)}")
+    assert result == expected
+
+
+def test_strip_ansi_codes_ansi_progress_bar():
+    """Test colored progress bar with overwrites."""
+    print("\n" + "="*60)
+    print("=== Testing Colored Progress Bar ===")
+    print("="*60)
+    
+    # Progress bar with ANSI colors and carriage returns
+    text = "\x1b[33mProgress: 10%\x1b[0m\r\x1b[33mProgress: 50%\x1b[0m\r\x1b[32mProgress: 100%\x1b[0m"
+    result = strip_ansi_codes(text)
+    expected = "Progress: 100%"
+    
+    print(f"\nColored progress bar:")
+    print(f"WITH ANSI (colored): {text}")
+    print(f"WITHOUT ANSI (plain): {result}")
+    print(f"Input repr:  {repr(text)}")
+    print(f"Output repr: {repr(result)}")
+    assert result == expected
+
+
+def test_strip_ansi_codes_trailing_cr():
+    """Test handling of trailing carriage return (the bug case)."""
+    print("\n" + "="*60)
+    print("=== Testing Trailing CR (Bug Fix) ===")
+    print("="*60)
+    
+    # Trailing \r should keep the text, not delete it
+    text = "echo test\r"
+    result = strip_ansi_codes(text)
+    expected = "echo test"
+    
+    print(f"\nTrailing \\r:")
+    print(f"Input repr:  {repr(text)}")
+    print(f"Output repr: {repr(result)}")
+    print(f"Expected:    {repr(expected)}")
+    assert result == expected
+    
+    # Sentinel with trailing \r (critical for command detection)
+    text2 = "__PTY_DONE_abc123__\r"
+    result2 = strip_ansi_codes(text2)
+    expected2 = "__PTY_DONE_abc123__"
+    
+    print(f"\nSentinel with trailing \\r:")
+    print(f"Input repr:  {repr(text2)}")
+    print(f"Output repr: {repr(result2)}")
+    print(f"Expected:    {repr(expected2)}")
+    assert result2 == expected2
+
+
+def test_strip_ansi_codes_multiple_prompts():
+    """Test multiple shell prompts separated by carriage returns."""
+    print("\n" + "="*60)
+    print("=== Testing Multiple Prompts (TCL_LEC Case) ===")
+    print("="*60)
+    
+    # Multiple prompts like TCL_LEC> \rTCL_LEC> \rTCL_LEC>
+    text = "TCL_LEC> \rTCL_LEC> \rTCL_LEC> "
+    result = strip_ansi_codes(text)
+    expected = "TCL_LEC> "
+    
+    print(f"\nMultiple prompts with \\r overwrites:")
+    print(f"Input repr:  {repr(text)}")
+    print(f"Output repr: {repr(result)}")
+    print(f"Expected:    {repr(expected)}")
+    assert result == expected
+    
+    # Same but without trailing space
+    text2 = "PROMPT> \rPROMPT> \rPROMPT>"
+    result2 = strip_ansi_codes(text2)
+    expected2 = "PROMPT>"
+    
+    print(f"\nWithout trailing space:")
+    print(f"Input repr:  {repr(text2)}")
+    print(f"Output repr: {repr(result2)}")
+    print(f"Expected:    {repr(expected2)}")
+    assert result2 == expected2
+
+
+def test_strip_ansi_codes_multiple_consecutive_cr():
+    """Test multiple consecutive carriage returns."""
+    print("\n" + "="*60)
+    print("=== Testing Multiple Consecutive CR ===")
+    print("="*60)
+    
+    # Multiple trailing \r\r
+    text1 = "PROMPT> \r\r"
+    result1 = strip_ansi_codes(text1)
+    expected1 = "PROMPT> "
+    
+    print(f"\nDouble trailing \\r\\r:")
+    print(f"Input repr:  {repr(text1)}")
+    print(f"Output repr: {repr(result1)}")
+    print(f"Expected:    {repr(expected1)}")
+    assert result1 == expected1
+    
+    # Progress with multiple \r at end
+    text2 = "something\rPROMPT> \r\r"
+    result2 = strip_ansi_codes(text2)
+    expected2 = "PROMPT> "
+    
+    print(f"\nOverwrites then multiple \\r:")
+    print(f"Input repr:  {repr(text2)}")
+    print(f"Output repr: {repr(result2)}")
+    print(f"Expected:    {repr(expected2)}")
+    assert result2 == expected2
+    
+    # Many \r at the end
+    text3 = "text1\rtext2\rtext3\r\r\r"
+    result3 = strip_ansi_codes(text3)
+    expected3 = "text3"
+    
+    print(f"\nMany trailing \\r:")
+    print(f"Input repr:  {repr(text3)}")
+    print(f"Output repr: {repr(result3)}")
+    print(f"Expected:    {repr(expected3)}")
+    assert result3 == expected3
+    
+    # Starting with \r
+    text4 = "\rPROMPT> "
+    result4 = strip_ansi_codes(text4)
+    expected4 = "PROMPT> "
+    
+    print(f"\nStarting with \\r:")
+    print(f"Input repr:  {repr(text4)}")
+    print(f"Output repr: {repr(result4)}")
+    print(f"Expected:    {repr(expected4)}")
+    assert result4 == expected4
 
 
 def test_strip_ansi_codes_removes_control_chars():

@@ -165,9 +165,17 @@ PTY-MCP automatically filters ANSI escape sequences and unprintable characters f
 - Cursor movement codes (e.g., `\x1b[2J` for clear screen)
 - Text formatting (bold, italic, underline)
 - OSC sequences (terminal titles, hyperlinks)
-- Control characters (excluding newline, tab, carriage return)
+- Control characters (excluding newline, tab)
 
-Commands like `ls --color=always` or colored shell prompts will have their formatting stripped automatically, leaving only the text content.
+**Line ending normalization:**
+- `\r\n` (Windows/DOS) → `\n` (Unix)
+- Standalone `\r` (progress bars, spinners) → keeps only final state
+
+**Examples:**
+- `ls --color=always` - colors stripped automatically
+- `"Progress: 10%\rProgress: 100%"` → `"Progress: 100%"` (progress bars)
+- `"Line1\r\nLine2\r\n"` → `"Line1\nLine2\n"` (normalized line endings)
+- Colored bash prompts have formatting removed
 
 ## Development
 

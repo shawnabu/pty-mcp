@@ -32,17 +32,41 @@ ANSI_ESCAPE_PATTERN = re.compile(
 def strip_ansi_codes(text: str) -> str:
     """
     Remove ANSI escape codes and other unprintable characters from text.
+    Normalizes line endings and handles carriage returns from progress bars.
     
     Args:
-        text: Text potentially containing ANSI codes
+        text: Text potentially containing ANSI codes and control characters
         
     Returns:
-        Text with ANSI codes removed
+        Text with ANSI codes removed and line endings normalized
     """
+    # First, normalize \r\n to just \n (Windows-style to Unix-style)
+    text = text.replace('\r\n', '\n')
+    
+    # Now handle standalone \r (progress bars, overwrites)
+    # Split by newlines to process each line independently
+    lines = text.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        # If line contains \r, it might be progress bar overwrites
+        if '\r' in line:
+            segments = line.split('\r')
+            # Find the last non-empty segment (handles multiple trailing \r)
+            non_empty = [s for s in segments if s]
+            if non_empty:
+                line = non_empty[-1]
+            else:
+                # All segments empty (line was just "\r\r\r")
+                line = ''
+        cleaned_lines.append(line)
+    
+    text = '\n'.join(cleaned_lines)
+    
     # Remove ANSI escape sequences
     text = ANSI_ESCAPE_PATTERN.sub('', text)
     
-    # Remove other control characters except \n, \r, \t
+    # Remove other control characters except \n and \t
     text = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]', '', text)
     
     return text
@@ -111,10 +135,12 @@ class PTYSession:
                         line, self._pending_output = self._pending_output.split(
                             "\n", 1
                         )
-                        self.buffer.append(line)
-                        # Write to log file immediately
+                        # Filter ANSI codes and control characters from complete line
+                        filtered_line = strip_ansi_codes(line)
+                        self.buffer.append(filtered_line)
+                        # Write to log file immediately (also filtered)
                         if self._log_file:
-                            self._log_file.write(line + "\n")
+                            self._log_file.write(filtered_line + "\n")
                     self.last_activity = datetime.now()
             except OSError:
                 break
@@ -124,9 +150,8 @@ class PTYSession:
         """Read available data from PTY."""
         try:
             data = os.read(self.fd, 4096)
-            decoded = data.decode("utf-8", errors="replace")
-            # Strip ANSI codes and unprintable characters
-            return strip_ansi_codes(decoded)
+            # Decode but don't filter yet - filtering happens on complete lines
+            return data.decode("utf-8", errors="replace")
         except BlockingIOError:
             return ""
         except OSError:
