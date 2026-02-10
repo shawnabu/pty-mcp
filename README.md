@@ -6,6 +6,7 @@ MCP server exposing PTY (pseudo-terminal) sessions for AI agents. Enables progra
 
 - Start and manage multiple PTY sessions
 - Run commands with sentinel-based completion detection
+- Automatic ANSI escape code filtering (colors, cursor control, etc.)
 - Works with any shell (bash, zsh, tcsh, fish, etc.)
 - Works with nested REPLs (Python, Node, Tcl, etc.)
 - Configurable session timeout and buffer size
@@ -154,6 +155,19 @@ set_sentinel(session_id, "echo {sentinel}")
 - Node.js: `console.log('{sentinel}')`
 - Tcl: `puts {sentinel}`
 - Ruby (irb): `puts '{sentinel}'`
+
+## Output Filtering
+
+PTY-MCP automatically filters ANSI escape sequences and unprintable characters from all output. This ensures clean, parseable text without terminal formatting codes.
+
+**Filtered sequences:**
+- ANSI color codes (e.g., `\x1b[31m` for red text)
+- Cursor movement codes (e.g., `\x1b[2J` for clear screen)
+- Text formatting (bold, italic, underline)
+- OSC sequences (terminal titles, hyperlinks)
+- Control characters (excluding newline, tab, carriage return)
+
+Commands like `ls --color=always` or colored shell prompts will have their formatting stripped automatically, leaving only the text content.
 
 ## Development
 

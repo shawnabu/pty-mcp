@@ -14,6 +14,40 @@ from typing import Optional
 from .config import SessionConfig
 
 
+# ANSI escape sequence pattern
+# Matches: ESC[...m (colors), ESC[...H (cursor), ESC]...\x07 (OSC), etc.
+ANSI_ESCAPE_PATTERN = re.compile(
+    r'\x1b'  # ESC character
+    r'(?:'  # Non-capturing group for alternatives
+    r'\[[0-9;]*[A-Za-z]'  # CSI sequences: ESC[...letter
+    r'|\][^\x07]*\x07'  # OSC sequences: ESC]...\x07
+    r'|\][^\x1b]*\x1b\\'  # OSC sequences: ESC]...\x1b\\
+    r'|\([0-9A-Za-z]'  # Charset sequences: ESC(X
+    r'|\)[0-9A-Za-z]'  # Charset sequences: ESC)X
+    r'|[=>]'  # Other escape sequences
+    r')'
+)
+
+
+def strip_ansi_codes(text: str) -> str:
+    """
+    Remove ANSI escape codes and other unprintable characters from text.
+    
+    Args:
+        text: Text potentially containing ANSI codes
+        
+    Returns:
+        Text with ANSI codes removed
+    """
+    # Remove ANSI escape sequences
+    text = ANSI_ESCAPE_PATTERN.sub('', text)
+    
+    # Remove other control characters except \n, \r, \t
+    text = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]', '', text)
+    
+    return text
+
+
 @dataclass
 class PTYSession:
     """Manages a single PTY session."""
@@ -90,7 +124,9 @@ class PTYSession:
         """Read available data from PTY."""
         try:
             data = os.read(self.fd, 4096)
-            return data.decode("utf-8", errors="replace")
+            decoded = data.decode("utf-8", errors="replace")
+            # Strip ANSI codes and unprintable characters
+            return strip_ansi_codes(decoded)
         except BlockingIOError:
             return ""
         except OSError:
