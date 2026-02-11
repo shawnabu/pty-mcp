@@ -13,6 +13,7 @@ from pty_mcp.tools import (
     _stop_session,
     _set_sentinel,
     _list_sessions,
+    _command_output,
 )
 
 
@@ -211,3 +212,107 @@ async def test_explicit_args_override_parsing(manager):
     sessions = manager.list_sessions()
     session = next(s for s in sessions if s["session_id"] == session_id)
     assert session["command"] == "/bin/bash"
+
+
+@pytest.mark.asyncio
+async def test_command_output_completed(manager):
+    """Test command_output with a completed command."""
+    # Start session
+    result = await _start_session(manager, {})
+    session_id = result[0].text.split("\n")[0].split(": ")[1]
+    
+    await asyncio.sleep(0.2)
+    
+    # Run a command
+    result = await _run_command(
+        manager, {"session_id": session_id, "command": "echo completed_test"}
+    )
+    
+    # Get command output
+    result = await _command_output(manager, {"session_id": session_id})
+    
+    assert "completed_test" in result[0].text
+    assert "[Command still running...]" not in result[0].text
+
+
+@pytest.mark.asyncio
+async def test_command_output_running(manager):
+    """Test command_output with a running command."""
+    # Start session
+    result = await _start_session(manager, {})
+    session_id = result[0].text.split("\n")[0].split(": ")[1]
+    
+    await asyncio.sleep(0.2)
+    
+    # Start a long-running command (don't await completion)
+    run_task = asyncio.create_task(
+        _run_command(
+            manager, {"session_id": session_id, "command": "sleep 5", "timeout": 10}
+        )
+    )
+    
+    # Give it a moment to start
+    await asyncio.sleep(0.3)
+    
+    # Get command output while running
+    result = await _command_output(manager, {"session_id": session_id})
+    
+    assert "[Command still running...]" in result[0].text
+    
+    # Cleanup: cancel the task
+    run_task.cancel()
+    try:
+        await run_task
+    except asyncio.CancelledError:
+        pass
+
+
+@pytest.mark.asyncio
+async def test_command_output_no_command(manager):
+    """Test command_output when no command has been run."""
+    # Start session
+    result = await _start_session(manager, {})
+    session_id = result[0].text.split("\n")[0].split(": ")[1]
+    
+    await asyncio.sleep(0.2)
+    
+    # Get command output without running anything
+    result = await _command_output(manager, {"session_id": session_id})
+    
+    # Should return empty or minimal output, no "still running" message
+    assert "[Command still running...]" not in result[0].text
+
+
+@pytest.mark.asyncio
+async def test_command_output_invalid_session(manager):
+    """Test command_output with invalid session ID."""
+    result = await _command_output(manager, {"session_id": "invalid_id"})
+    
+    assert "Session not found" in result[0].text
+
+
+@pytest.mark.asyncio
+async def test_command_output_multiple_commands(manager):
+    """Test command_output returns output of the last command."""
+    # Start session
+    result = await _start_session(manager, {})
+    session_id = result[0].text.split("\n")[0].split(": ")[1]
+    
+    await asyncio.sleep(0.2)
+    
+    # Run first command
+    await _run_command(
+        manager, {"session_id": session_id, "command": "echo first_command"}
+    )
+    
+    # Run second command
+    await _run_command(
+        manager, {"session_id": session_id, "command": "echo second_command"}
+    )
+    
+    # Get command output - should show only second command
+    result = await _command_output(manager, {"session_id": session_id})
+    
+    assert "second_command" in result[0].text
+    # First command should not be in the output
+    assert "first_command" not in result[0].text

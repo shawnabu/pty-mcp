@@ -147,6 +147,20 @@ def register_tools(server: Server, session_manager: SessionManager) -> None:
                     "properties": {},
                 },
             ),
+            Tool(
+                name="command_output",
+                description="Get the output of the last command executed via run_command. If the command is still running (sentinel not yet detected), returns current output with '[Command still running...]' indicator.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "session_id": {
+                            "type": "string",
+                            "description": "The session ID",
+                        },
+                    },
+                    "required": ["session_id"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -166,6 +180,8 @@ def register_tools(server: Server, session_manager: SessionManager) -> None:
                 return await _set_sentinel(session_manager, arguments)
             elif name == "list_sessions":
                 return await _list_sessions(session_manager)
+            elif name == "command_output":
+                return await _command_output(session_manager, arguments)
             else:
                 return [TextContent(type="text", text=f"Unknown tool: {name}")]
         except Exception as e:
@@ -317,3 +333,24 @@ async def _list_sessions(manager: SessionManager) -> list[TextContent]:
         )
 
     return [TextContent(type="text", text="\n".join(lines))]
+
+
+async def _command_output(
+    manager: SessionManager, args: dict
+) -> list[TextContent]:
+    session_id = args["session_id"]
+
+    session = manager.get_session(session_id)
+    if not session:
+        return [TextContent(type="text", text=f"Session not found: {session_id}")]
+
+    output, is_complete = session.get_last_command_output()
+
+    if is_complete:
+        return [TextContent(type="text", text=output)]
+    else:
+        # Command still running
+        if output:
+            return [TextContent(type="text", text=f"{output}\n[Command still running...]")]
+        else:
+            return [TextContent(type="text", text="[Command still running...]")]

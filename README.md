@@ -125,6 +125,32 @@ Change the sentinel command for a session. Use when switching between shells/REP
 
 List all active sessions with metadata.
 
+#### `command_output`
+
+Get the output of the last command executed via `run_command`.
+
+**Parameters:**
+- `session_id` (required): Session ID
+
+**Returns:** Output of the last command. If the command is still running (sentinel not yet detected), returns current output with `[Command still running...]` appended.
+
+**Examples:**
+```python
+# Run a command
+run_command(session_id, "echo hello")
+
+# Get its output later
+output = command_output(session_id)  # Returns "hello"
+
+# Start a long command (without awaiting completion)
+# run_command(session_id, "sleep 10") - starts but doesn't wait
+
+# Check its output while running
+output = command_output(session_id)  # Returns "[Command still running...]"
+```
+
+**Note:** This tool tracks state per session. Running multiple commands will overwrite the tracked output, so calling `command_output` will always return the output of the most recent command.
+
 ## Working with REPLs
 
 When switching from a shell to a REPL (or between REPLs), use `set_sentinel` to update the sentinel command:

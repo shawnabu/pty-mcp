@@ -88,6 +88,11 @@ class PTYSession:
     _read_task: Optional[asyncio.Task] = field(default=None, init=False)
     _pending_output: str = field(default="", init=False)
     _log_file: Optional[object] = field(default=None, init=False)
+    # State tracking for last command
+    _last_command: Optional[str] = field(default=None, init=False)
+    _last_command_start_pos: int = field(default=0, init=False)
+    _last_command_complete: bool = field(default=True, init=False)
+    _last_command_sentinel: Optional[str] = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         self.buffer = deque(maxlen=self.config.buffer_size)
@@ -171,6 +176,12 @@ class PTYSession:
 
         # Clear pending output tracking for this command
         start_buffer_len = len(self.buffer)
+        
+        # Track last command state
+        self._last_command = command
+        self._last_command_start_pos = start_buffer_len
+        self._last_command_complete = False
+        self._last_command_sentinel = sentinel
 
         # Send command followed by sentinel command
         full_command = f"{command}\n{sentinel_cmd}\n"
@@ -205,6 +216,8 @@ class PTYSession:
                     output_lines = self._filter_command_echo(
                         output_lines, command, sentinel_cmd
                     )
+                    # Mark command as complete
+                    self._last_command_complete = True
                     return "\n".join(output_lines), True
 
             output_lines = new_lines
@@ -227,6 +240,64 @@ class PTYSession:
                 continue
             result.append(line)
         return result
+
+    def get_last_command_output(self) -> tuple[str, bool]:
+        """
+        Get output of the last command.
+        
+        Returns:
+            Tuple of (output, is_complete)
+            - output: The command output collected so far
+            - is_complete: True if command has finished (sentinel found)
+        """
+        # If no command has been run yet
+        if self._last_command is None:
+            return "", True
+        
+        # Get snapshot of current buffer
+        current_buffer = list(self.buffer)
+        
+        # Extract lines from the command's start position
+        if self._last_command_start_pos >= len(current_buffer):
+            # Command just started, no output yet
+            return "", self._last_command_complete
+        
+        # Get lines since command started
+        command_lines = current_buffer[self._last_command_start_pos:]
+        
+        # If command is complete, filter out sentinel
+        if self._last_command_complete and self._last_command_sentinel:
+            filtered_lines = []
+            sentinel_cmd = self.config.sentinel_command.format(
+                sentinel=self._last_command_sentinel
+            )
+            
+            for line in command_lines:
+                # Stop at sentinel output
+                if self._last_command_sentinel in line:
+                    stripped = line.strip()
+                    # Skip the sentinel echo line
+                    if stripped == sentinel_cmd.strip() or stripped.endswith(sentinel_cmd.strip()):
+                        continue
+                    # Found the actual sentinel output, stop here
+                    break
+                filtered_lines.append(line)
+            
+            # Filter out command echo
+            filtered_lines = self._filter_command_echo(
+                filtered_lines, self._last_command, sentinel_cmd
+            )
+            return "\n".join(filtered_lines), True
+        else:
+            # Command still running, return all output so far
+            # Filter command echo (but not sentinel since it hasn't appeared)
+            sentinel_cmd = self.config.sentinel_command.format(
+                sentinel=self._last_command_sentinel or ""
+            )
+            filtered_lines = self._filter_command_echo(
+                command_lines, self._last_command, sentinel_cmd
+            )
+            return "\n".join(filtered_lines), False
 
     async def send_keys(self, keys: str) -> None:
         """Send raw input to the PTY."""
